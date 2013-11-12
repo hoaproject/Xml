@@ -77,35 +77,36 @@ class Attribute {
      * @return  void
      * @throw   \Hoa\Xml\Exception
      */
-    public function __construct ( $string ) {
+    public function __construct ( $string = '' ) {
+        if (!empty($string)) {
+            $out = preg_match_all(
+                '#(\w+)\s*(=\s*(?<!\\\)(?:("|\')|)(?(3)(.*?)(?<!\\\)\3|(\w+))\s*)?#',
+                trim($string),
+                $attributes,
+                PREG_SET_ORDER
+            );
 
-        $out = preg_match_all(
-            '#(\w+)\s*(=\s*(?<!\\\)(?:("|\')|)(?(3)(.*?)(?<!\\\)\3|(\w+))\s*)?#',
-            trim($string),
-            $attributes,
-            PREG_SET_ORDER
-        );
+            if(0 === $out)
+                throw new Exception(
+                    'The string %s does not represent attributes.', 0, $string);
 
-        if(0 === $out)
-            throw new Exception(
-                'The string %s does not represent attributes.', 0, $string);
+            foreach($attributes as $i => $attribute)
+                // Boolean: abc
+                if(!isset($attribute[2]))
+                    $this->_attributes[$attribute[1]] = $attribute[1];
 
-        foreach($attributes as $i => $attribute)
-            // Boolean: abc
-            if(!isset($attribute[2]))
-                $this->_attributes[$attribute[1]] = $attribute[1];
+                // Quote: abc="def" or abc='def'
+                elseif(!isset($attribute[5]))
+                    $this->_attributes[$attribute[1]] = str_replace(
+                        '\\' . $attribute[3],
+                        $attribute[3],
+                        $attribute[4]
+                    );
 
-            // Quote: abc="def" or abc='def'
-            elseif(!isset($attribute[5]))
-                $this->_attributes[$attribute[1]] = str_replace(
-                    '\\' . $attribute[3],
-                    $attribute[3],
-                    $attribute[4]
-                );
-
-            // No-quote: abc=def
-            else
-                $this->_attributes[$attribute[1]] = $attribute[5];
+                // No-quote: abc=def
+                else
+                    $this->_attributes[$attribute[1]] = $attribute[5];
+        }
     }
 
     /**
@@ -172,6 +173,52 @@ class Attribute {
     public function readAttributeAsList ( $name ) {
 
         return explode(' ', $this->readAttribute($name));
+    }
+
+	/**
+     * Write attributes.
+     * If an attribute does not exist, it will be created.
+     *
+     * @access public
+     * @param array $attributes Attributes.
+     * @return void
+     */
+    public function writeAttributes ( Array $attributes ) {
+
+        foreach($attributes as $name => $value)
+            $this->writeAttribute($name, $value);
+
+        return;
+    }
+
+    /**
+     * Write an attribute.
+     * If the attribute does not exist, it will be created.
+     *
+     * @access public
+     * @param string $name Name.
+     * @param string $value Value.
+     * @return void
+     */
+    public function writeAttribute ( $name, $value ) {
+
+        $this->_attributes[$name] = $value;
+
+        return;
+    }
+
+    /**
+     * Remove an attribute.
+     *
+     * @access public
+     * @param string $name Name.
+     * @return void
+     */
+    public function removeAttribute ( $name ) {
+
+        unset($this->_attributes[$name]);
+
+        return;
     }
 
     /**
